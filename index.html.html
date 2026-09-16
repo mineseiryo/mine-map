@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>美祢市 満喫観光＆ガイドマップ</title>
+    <!-- Tailwind CSSの読み込み -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fontsの読み込み (Noto Sans JP & ポップな M PLUS Rounded 1c) -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Leaflet CSSの読み込み -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    
+    <style>
+        /* スムーススクロール */
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f8fafc;
+        }
+        /* ポップなフォント設定 */
+        .font-pop {
+            font-family: 'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif;
+        }
+        /* マップコンテナ */
+        .map-container {
+            position: relative;
+            width: 100%;
+            height: 60vh;
+            min-height: 420px;
+            max-height: 650px;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            background-color: #ffffff;
+            overflow: hidden;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        /* 基本カスタムピン共通スタイル */
+        .custom-map-pin {
+            width: 38px !important;
+            height: 38px !important;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            border: 2px solid white;
+            text-decoration: none;
+            transition: transform 0.2s, background-color 0.2s;
+            margin-left: -19px !important; 
+            margin-top: -38px !important;
+            position: relative;
+        }
+        .custom-map-pin::after {
+            content: '';
+            position: absolute;
+            bottom: -9px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 9px 7px 0;
+            border-style: solid;
+            transition: border-color 0.2s;
+        }
+
+        /* カテゴリー別テーマカラー */
+        /* 1. 観光地：グリーン (#10b981) */
+        .pin-sightseeing {
+            background-color: #10b981;
+        }
+        .pin-sightseeing::after {
+            border-color: #10b981 transparent transparent transparent;
+        }
+        .pin-sightseeing:hover {
+            background-color: #059669;
+            transform: scale(1.15);
+        }
+        .pin-sightseeing:hover::after {
+            border-color: #059669 transparent transparent transparent;
+        }
+
+        /* 2. 飲食店：オレンジ (#f97316) */
+        .pin-gourmet {
+            background-color: #f97316;
+        }
+        .pin-gourmet::after {
+            border-color: #f97316 transparent transparent transparent;
+        }
+        .pin-gourmet:hover {
+            background-color: #ea580c;
+            transform: scale(1.15);
+        }
+        .pin-gourmet:hover::after {
+            border-color: #ea580c transparent transparent transparent;
+        }
+
+        /* 3. 体験：パープル (#8b5cf6) */
+        .pin-experience {
+            background-color: #8b5cf6;
+        }
+        .pin-experience::after {
+            border-color: #8b5cf6 transparent transparent transparent;
+        }
+        .pin-experience:hover {
+            background-color: #7c3aed;
+            transform: scale(1.15);
+        }
+        .pin-experience:hover::after {
+            border-color: #7c3aed transparent transparent transparent;
+        }
+
+        /* 4. 宿泊：ブルー (#3b82f6) */
+        .pin-accommodation {
+            background-color: #3b82f6;
+        }
+        .pin-accommodation::after {
+            border-color: #3b82f6 transparent transparent transparent;
+        }
+        .pin-accommodation:hover {
+            background-color: #2563eb;
+            transform: scale(1.15);
+        }
+        .pin-accommodation:hover::after {
+            border-color: #2563eb transparent transparent transparent;
+        }
+
+        /* 観光交流センター用ピン */
+        .center-map-pin {
+            width: 36px !important;
+            height: 36px !important;
+            background-color: #475569;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border: 2px solid white;
+            margin-left: -18px !important; 
+            margin-top: -36px !important;
+        }
+        .center-map-pin::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 8px 6px 0;
+            border-style: solid;
+            border-color: #475569 transparent transparent transparent;
+        }
+
+        .spot-card {
+            scroll-margin-top: 2rem;
+            cursor: pointer;
+        }
+
+        /* フィルターボタンのアクティブ状態 */
+        .filter-btn.active {
+            ring-width: 2px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- ヘッダー（美祢青嶺高校のイメージカラー「青」を基調としたシンプルなデザイン） -->
+    <header class="bg-blue-600 text-white text-center py-8 px-4 shadow-md">
+        <h1 class="text-3xl md:text-4xl font-bold mb-2">🚙 美祢市 満喫観光＆ガイドマップ</h1>
+        <p class="text-xs md:text-sm text-blue-100 max-w-xl mx-auto">
+            美祢青嶺高校生がおすすめする観光・グルメ・体験・宿泊のコンプリートガイド！<br>
+            気になるカテゴリーのピンを探して、最高の美祢トリップを楽しもう！
+        </p>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="max-w-6xl mx-auto px-4 py-8">
+        
+        <!-- 導入文 -->
+        <p class="text-center mb-8 text-gray-600 leading-relaxed max-w-2xl mx-auto text-sm md:text-base">
+            美祢市の「観光」「グルメ」「体験」「宿泊」を丸ごと大特集！<br class="hidden sm:inline">
+            カテゴリー別のピンで気になる場所を探して、最高の美祢トリップを計画しましょう。
+        </p>
+
+        <!-- ⭐モデルコースセクション -->
+        <section class="mb-12 bg-gradient-to-r from-blue-50 via-indigo-50 to-emerald-50 p-6 rounded-2xl border border-blue-100 shadow-sm">
+            <div class="text-center mb-6">
+                <span class="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block mb-2">高校生おすすめ</span>
+                <h2 class="text-2xl md:text-3xl font-extrabold text-gray-800 font-pop">🗺️ 旅の目的にあわせて選べる！美祢満喫モデルコース</h2>
+                <p class="text-xs md:text-sm text-gray-600 mt-1">「どこから巡ればいいかわからない」という方へ！おすすめルートをご提案します。</p>
+            </div>
+
+            <!-- コースカードグリッド -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- コース1 -->
+                <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden flex flex-col hover:shadow-lg transition">
+                    <div class="bg-emerald-600 text-white p-4">
+                        <span class="text-xs font-semibold bg-emerald-700 text-emerald-100 px-2 py-0.5 rounded">日帰り定番</span>
+                        <h3 class="text-lg font-bold mt-1 font-pop">① 絶景＆神秘の王道コース</h3>
+                        <p class="text-xs text-emerald-100 mt-1">秋吉台・秋芳洞・弁天池を1日で欲張り制覇！</p>
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col justify-between">
+                        <ol class="relative border-l-2 border-emerald-200 ml-3 space-y-3 text-xs md:text-sm text-gray-700 my-2">
+                            <li class="ml-4">
+                                <span class="absolute flex items-center justify-center w-5 h-5 bg-emerald-500 rounded-full -left-2.5 text-white text-xs font-bold">1</span>
+                                <button onclick="focusSpot('spot-2')" class="font-bold text-emerald-700 hover:underline text-left">秋芳洞</button>
+                                <p class="text-xs text-gray-500">ひんやり神秘の鍾乳洞探検</p>
+                            </li>
+                            <li class="ml-4">
+                                <span class="absolute flex items-center justify-center w-5 h-5 bg-emerald-500 rounded-full -left-2.5 text-white text-xs font-bold">2</span>
+                                <button onclick="focusSpot('spot-16')" class="font-bold text-orange-700 hover:underline text-left">安富屋でランチ</button>
+                                <p class="text-xs text-gray-500">名物「ごぼう麺」を堪能</p>
+                            </li>
+                            <li class="ml-4">
+                                <span class="absolute flex items-center justify-center w-5 h-5 bg-emerald-500 rounded-full -left-2.5 text-white text-xs font-bold">3</span>
+                                <button onclick="focusSpot('spot-1')" class="font-bold text-emerald-700 hover:underline text-left">秋吉台</button>
+                                <p class="text-xs text-gray-500">雄大なカルスト台地をドライブ</p>
+                            </li>
+                            <li class="ml-4">
+                                <span class="absolute flex items-center justify-center w-5 h-5 bg-emerald-500 rounded-full -left-2.5 text-white text-xs font-bold">4</span>
+                                <button onclick="focusSpot('spot-3')" class="font-bold text-emerald-700 hover:underline text-left">別府弁天池</button>
+                                <p class="text-xs text-gray-500">コバルトブルーの名水で癒やし</p>
+                            </li>
+                        </ol>
+                        <div class="mt-3 pt-3 border-t text-xs text-gray-500 flex justify-between items-center">
+                            <span>⏱️ 所要時間：約5〜6時間</span>
+                            <span class="text-emerald-600 font-semibold">移動：車 🚗</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- コース2 -->
+                <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden flex flex-col hover:shadow-lg transition">
+                    <div class="bg-purple-600 text-white p-4">
+                        <span class="text-xs font-semibold bg-purple-700 text-purple-100 px-2 py-0.5 rounded">アクティブ</span>
+                        <h3 class="text-lg font-bold mt-1 font-pop">② 体験＆冒険ワクワクコース</h3>
+                        <p class="text-xs text-purple-100 mt-1">E-Bikeや真っ暗闇の洞窟探検でスリル体験！</p>
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col justify-between">
+                        <ol class="relative border-l-2 border-purple-200 ml-3 space-y-3 text-xs md:text-sm text-gray-700 my-2">
+                            <li class="ml-4">
+                                <span class="absolute flex items-center justify-center w-5 h-5 bg-purple-500 rounded-full -left-2.5 text-white text-xs font-bold">1</span>
+                                <button onclick="focusSpot('spot-20')" class="font-bold text-purple-700 hover:underline text-left">Karst Gate</button>
+                                <p class="text-xs text-gray-500">E-Bikeでカルスト草原をサイクリング</p>
+                            </li>
+                            <li class="ml-4">
+                                <span class="absolute flex items-center justify-center w-5 h-5 bg-purple-500 rounded-full -left-2.5 text-white text-xs font-bold">2</span>
+                                <button onclick="focusSpot('spot-22')" class="font-bold text-purple-700 hover:underline text-left">景清洞 探検コース</button>
+                                <p class="text-xs text-gray-500">ヘルメット姿で暗闇アドベンチャー</p>
+                            </li>
+                            <li class="ml-4">
+                                <span class="absolute flex items-center justify-center w-5 h-5 bg-purple-500 rounded-full -left-2.5 text-white text-xs font-bold">3</span>
+                                <button onclick="focusSpot('spot-15')" class="font-bold text-emerald-700 hover:underline text-left">秋吉台サファリランド</button>
+                                <p class="text-xs text-gray-500">迫力満点のエサやりバス体験</p>
+                            </li>
+                            <li class="ml-4">
+                                <span class="absolute flex items-center justify-center w-5 h-5 bg-purple-500 rounded-full -left-2.5 text-white text-xs font-bold">4</span>
+                                <button onclick="focusSpot('spot-14')" class="font-bold text-emerald-700 hover:underline text-left">於福温泉</button>
+                                <p class="text-xs text-gray-500">運動の後は源泉かけ流しでリフレッシュ</p>
+                            </li>
+                        </ol>
+                        <div class="mt-3 pt-3 border-t text-xs text-gray-500 flex justify-between items-center">
+                            <span>⏱️ 所要時間：約6〜7時間</span>
+                            <span class="text-purple-600 font-semibold">移動：車 🚗</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- コース3 -->
+                <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden flex flex-col hover:shadow-lg transition">
+                    <div class="bg-blue-600 text-white p-4">
+                        <span class="text-xs font-semibold bg-blue-700 text-blue-100 px-2 py-0.5 rounded">リフレッシュ</span>
+                        <h3 class="text-lg font-bold mt-1 font-pop">③ マイナスイオン＆カフェ巡り</h3>
+                        <p class="text-xs text-blue-100 mt-1">滝や清流で癒やされ、ゆったりお茶タイム♪</p>
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col justify-between">
+                        <ol class="relative border-l-2 border-blue-200 ml-3 space-y-3 text-xs md:text-sm text-gray-700 my-2">
+                            <li class="ml-4">
+                                <span class="absolute flex items-center justify-center w-5 h-5 bg-blue-500 rounded-full -left-2.5 text-white text-xs font-bold">1</span>
+                                <button onclick="focusSpot('spot-5')" class="font-bold text-emerald-700 hover:underline text-left">白糸の滝 / 水神公園</button>
+                                <p class="text-xs text-gray-500">マイナスイオンいっぱいの滝散策</p>
+                            </li>
+                            <li class="ml-4">
+                                <span class="absolute flex items-center justify-center w-5 h-5 bg-blue-500 rounded-full -left-2.5 text-white text-xs font-bold">2</span>
+                                <button onclick="focusSpot('spot-17')" class="font-bold text-orange-700 hover:underline text-left">弁天会館（ニジマス料理）</button>
+                                <p class="text-xs text-gray-500">名水で育ったニジマスの塩焼き定食</p>
+                            </li>
+                            <li class="ml-4">
+                                <span class="absolute flex items-center justify-center w-5 h-5 bg-blue-500 rounded-full -left-2.5 text-white text-xs font-bold">3</span>
+                                <button onclick="focusSpot('spot-19')" class="font-bold text-orange-700 hover:underline text-left">Arbòreo（アルボレオ）</button>
+                                <p class="text-xs text-gray-500">緑に囲まれたカフェで自家製スイーツ</p>
+                            </li>
+                            <li class="ml-4">
+                                <span class="absolute flex items-center justify-center w-5 h-5 bg-blue-500 rounded-full -left-2.5 text-white text-xs font-bold">4</span>
+                                <button onclick="focusSpot('spot-23')" class="font-bold text-blue-700 hover:underline text-left">レドンド秋吉台</button>
+                                <p class="text-xs text-gray-500">夜は満天の星空グランピング（宿泊）</p>
+                            </li>
+                        </ol>
+                        <div class="mt-3 pt-3 border-t text-xs text-gray-500 flex justify-between items-center">
+                            <span>⏱️ 1泊2日・ゆったり</span>
+                            <span class="text-blue-600 font-semibold">移動：車 🚗</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- カテゴリーフィルターボタン -->
+        <section class="mb-8">
+            <div class="flex flex-wrap justify-center gap-2 md:gap-4">
+                <button onclick="filterCategory('all')" id="btn-all" class="filter-btn active bg-gray-800 text-white px-4 py-2.5 rounded-full text-sm font-medium transition duration-200 hover:bg-gray-700 flex items-center shadow">
+                    ✨ すべてを表示
+                </button>
+                <button onclick="filterCategory('sightseeing')" id="btn-sightseeing" class="filter-btn bg-white text-emerald-700 border border-emerald-300 px-4 py-2.5 rounded-full text-sm font-medium transition duration-200 hover:bg-emerald-50 flex items-center shadow-sm">
+                    <span class="w-3 h-3 rounded-full bg-emerald-500 mr-2 inline-block"></span>🌲 観光地
+                </button>
+                <button onclick="filterCategory('gourmet')" id="btn-gourmet" class="filter-btn bg-white text-orange-700 border border-orange-300 px-4 py-2.5 rounded-full text-sm font-medium transition duration-200 hover:bg-orange-50 flex items-center shadow-sm">
+                    <span class="w-3 h-3 rounded-full bg-orange-500 mr-2 inline-block"></span>🍔 飲食店
+                </button>
+                <button onclick="filterCategory('experience')" id="btn-experience" class="filter-btn bg-white text-purple-700 border border-purple-300 px-4 py-2.5 rounded-full text-sm font-medium transition duration-200 hover:bg-purple-50 flex items-center shadow-sm">
+                    <span class="w-3 h-3 rounded-full bg-purple-500 mr-2 inline-block"></span>🎨 体験
+                </button>
+                <button onclick="filterCategory('accommodation')" id="btn-accommodation" class="filter-btn bg-white text-blue-700 border border-blue-300 px-4 py-2.5 rounded-full text-sm font-medium transition duration-200 hover:bg-blue-50 flex items-center shadow-sm">
+                    <span class="w-3 h-3 rounded-full bg-blue-500 mr-2 inline-block"></span>🏨 宿泊
+                </button>
+            </div>
+        </section>
+
+        <!-- 地図エリア -->
+        <section class="mb-12">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl md:text-2xl font-bold border-b-2 border-emerald-500 pb-2 flex items-center text-gray-800 font-pop">
+                    <svg class="w-6 h-6 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    インタラクティブ美祢マップ
+                </h2>
+                <span id="spot-count-badge" class="text-xs md:text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded-full font-semibold border">全 29 スポット</span>
+            </div>
+
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+
+            <!-- ピン凡例バー -->
+            <div class="mt-4 p-4 bg-white rounded-xl shadow-sm border border-gray-100 flex flex-wrap items-center justify-between gap-3 text-xs md:text-sm">
+                <div class="font-bold text-gray-700 mr-2">【ピンの色ガイド】</div>
+                <div class="flex items-center space-x-1">
+                    <span class="w-3.5 h-3.5 rounded-full bg-emerald-500 inline-block"></span>
+                    <span class="text-gray-600">観光地</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <span class="w-3.5 h-3.5 rounded-full bg-orange-500 inline-block"></span>
+                    <span class="text-gray-600">飲食店</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <span class="w-3.5 h-3.5 rounded-full bg-purple-500 inline-block"></span>
+                    <span class="text-gray-600">体験</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <span class="w-3.5 h-3.5 rounded-full bg-blue-500 inline-block"></span>
+                    <span class="text-gray-600">宿泊</span>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <span class="w-3.5 h-3.5 rounded-full bg-gray-600 inline-block"></span>
+                    <span class="text-gray-600">観光交流センター(起点)</span>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2 text-right">💡 カードやコースのスポットをタップすると、マップ上のその場所へ移動します。</p>
+        </section>
+
+        <!-- スポットカード一覧 -->
+        <div id="spot-cards-container" class="space-y-8">
+            <!-- JavaScriptで動的にカードをレンダリングします -->
+        </div>
+        
+        <!-- 補足情報 -->
+        <div class="mt-12 p-4 bg-gray-100 rounded-lg text-xs md:text-sm text-gray-600 text-center">
+            <p>※ 所要時間の目安は、美祢市観光交流センターからの車でのアクセス時間です。</p>
+        </div>
+
+    </main>
+
+    <!-- フッター -->
+    <footer class="bg-gray-800 text-white text-center py-6 mt-12">
+        <p class="text-sm opacity-75">&copy; 2026 美祢市満喫観光マップ プロジェクト</p>
+    </footer>
+
+    <!-- Leaflet JSの読み込み -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <script>
+        // スポットデータ（観光・グルメ・体験・宿泊の4カテゴリー）
+        const spots = [
+            // --- 🌲 観光地 (sightseeing) ---
+            {
+                id: 'spot-1',
+                category: 'sightseeing',
+                categoryLabel: '観光地',
+                categoryColorClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                pinClass: 'pin-sightseeing',
+                name: '秋吉台',
+                ruby: 'あきよしだい',
+                badgeText: 'カルスト台地',
+                access: '🚗 約20分',
+                img: 'https://yamaguchi-tourism.jp/lsc/api/photo/?src=1700394',
+                description: '日本最大級のカルスト台地。白い石灰岩が羊の群れのように点在する景色は四季折々の表情を見せてくれます。ハイキングや絶景ドライブに最適です。',
+                studentVoice: '秋のススキが一面に広がる景色がエモくて最高！友達とドライブしながら写真を撮りにいく定番スポットです。',
+                lat: 34.237,
+                lng: 131.298
+            },
+            {
+                id: 'spot-2',
+                category: 'sightseeing',
+                categoryLabel: '観光地',
+                categoryColorClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                pinClass: 'pin-sightseeing',
+                name: '秋芳洞',
+                ruby: 'あきよしどう',
+                badgeText: '鍾乳洞',
+                access: '🚗 約20分',
+                img: 'https://karusuto.com/wp-content/uploads/2022/10/20.jpg',
+                description: '地下100mに広がる東洋屈指の大鍾乳洞。洞内は年間を通して17度前後で快適。「百枚皿」や「黄金柱」など神秘的な造形美が広がります。',
+                studentVoice: '夏は本当にひんやり涼しくて最高！入口から洞窟までの青く澄んだ川もすごく美しいので注目してほしいです。',
+                lat: 34.227,
+                lng: 131.303
+            },
+            {
+                id: 'spot-3',
+                category: 'sightseeing',
+                categoryLabel: '観光地',
+                categoryColorClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                pinClass: 'pin-sightseeing',
+                name: '別府弁天池',
+                ruby: 'べっぷべんてんいけ',
+                badgeText: '湧水・名水百選',
+                access: '🚗 約15分',
+                img: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/67/Beppu_benten_pond.JPG/1920px-Beppu_benten_pond.JPG?utm_source=ja.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail',
+                description: '透き通ったコバルトブルーの水が湧き出る神秘的な池。日本名水百選に選ばれており、光の差し込み方で青の色合いが変わる絶景スポットです。',
+                studentVoice: '本当に吸い込まれそうな青さ！写真映え抜群で、周りの緑と水面のコントラストがとても綺麗です。',
+                lat: 34.254,
+                lng: 131.218
+            },
+            {
+                id: 'spot-4',
+                category: 'sightseeing',
+                categoryLabel: '観光地',
+                categoryColorClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                pinClass: 'pin-sightseeing',
+                name: '白水の池',
+                ruby: 'しらみずのいけ',
+                badgeText: '隠れた名水',
+                access: '🚗 約18分',
+                img: 'https://www.mine-city-fc.com/images/introduction/nature/shiramizu/photo.png',
+                description: '別府弁天池からほど近い隠れた湧水スポット。静かな山あいにひっそりと佇み、美しい水面と豊かな自然が心地よい安らぎを与えてくれます。',
+                studentVoice: '弁天池と一緒に立ち寄りたい穴場癒やしスポット！静かで鳥のさえずりが聞こえる最高の息抜き場所です。',
+                lat: 34.239,
+                lng: 131.215
+            },
+            {
+                id: 'spot-5',
+                category: 'sightseeing',
+                categoryLabel: '観光地',
+                categoryColorClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                pinClass: 'pin-sightseeing',
+                name: '白糸の滝',
+                ruby: 'しらいとのたき',
+                badgeText: '名瀑・マイナスイオン',
+                access: '🚗 約25分',
+                img: 'https://karusuto.com/wp-content/uploads/2017/08/shuhoshiraitonotaki_main-1.jpg',
+                description: '落差約30mのロマンチックな滝。マイナスイオンたっぷりの涼やかな空間で、四季折々の紅葉や新緑とのコントラストが美しく映えます。',
+                studentVoice: '夏に行くと涼しくてマイナスイオンをたっぷり浴びられます！秋の紅葉シーズンもすごく綺麗でおすすめ。',
+                lat: 34.241,
+                lng: 131.341
+            },
+            {
+                id: 'spot-6',
+                category: 'sightseeing',
+                categoryLabel: '観光地',
+                categoryColorClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                pinClass: 'pin-sightseeing',
+                name: '景清洞',
+                ruby: 'かげきよどう',
+                badgeText: '鍾乳洞・化石',
+                access: '🚗 約30分',
+                img: 'https://yamaguchi-tourism.jp/lsc/api/photo/?src=1700124',
+                description: '平景清の伝説が残る歴史ある鍾乳洞。天井や壁面にはサンゴなどの化石が多く観察でき、自然が造り出したアートを堪能できます。',
+                studentVoice: '洞窟内はもちろん、太古の化石がたくさん見つかるのが面白い！歴史ロマンを感じるスポットです。',
+                lat: 34.289,
+                lng: 131.326
+            },
+            {
+                id: 'spot-7',
+                category: 'sightseeing',
+                categoryLabel: '観光地',
+                categoryColorClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                pinClass: 'pin-sightseeing',
+                name: '大正洞',
+                ruby: 'たいしょうどう',
+                badgeText: '立体鍾乳洞',
+                access: '🚗 約28分',
+                img: 'https://www2.city.mine.lg.jp/material/images/group/31/1319256242484_SERVER_001_1319252354902_image1.jpg',
+                description: '複雑な立体構造を持つ縦横無尽の鍾乳洞。「地獄入口」や「極楽浄土」などユニークな名前がついた見所が多く冒険心をくすぐられます。',
+                studentVoice: '入り組んだ洞窟内を進むワクワク感がたまらない！秋芳洞とはまた違った探検感が味わえます。',
+                lat: 34.281,
+                lng: 131.314
+            },
+            {
+                id: 'spot-8',
+                category: 'sightseeing',
+                categoryLabel: '観光地',
+                categoryColorClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                pinClass: 'pin-sightseeing',
+                name: '万倉の大岩郷',
+                ruby: 'まぐらのおおいわごう',
+                badgeText: '天然記念物・巨石群',
+                access: '🚗 約15分',
+                img: 'https://www2.city.mine.lg.jp/material/images/group/31/1319258551066_SERVER_001_1319257502078_image1.jpg',
+                description: '国の天然記念物に指定されている巨石群。斜面一面を無数の大きな岩が埋め尽くす異世界のような迫力ある光景を楽しめます。',
+                studentVoice: '映画の世界に入り込んだみたいな巨石地帯！夕方になると岩肌に光が当たってカッコいい写真が撮れます。',
+                lat: 34.135,
+                lng: 131.202
+            },
+            {
+                id: 'spot-9',
+                category: 'sightseeing',
+                categoryLabel: '観光地',
+                categoryColorClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                pinClass: 'pin-sightseeing',
+                name: '厚狭川',
+                ruby: 'あさがわ',
+                badgeText: '清流・散策スポット',
+                access: '🚗 約5分',
+                img: 'https://yamaguchi-tourism.jp/lsc/api/photo/?src=1700459',
+                description: '美祢市の中心部を流れる清らかな川。川沿いには豊かな自然が残り、季節の移り変わりを感じながら散策やピクニックを楽しめます。',
+                studentVoice: '放課後に友達と川沿いを歩いたり、川のせせらぎを聞きながらのんびり話すのが青嶺生の憩いの時間です。',
+                lat: 34.168,
+                lng: 131.204
+            },
+            {
+                id: 'spot-10',
+                category: 'sightseeing',
+                categoryLabel: '観光地',
+                categoryColorClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                pinClass: 'pin-sightseeing',
+                name: '美祢さくら公園',
+                ruby: 'みねさくらこうえん',
+                badgeText: '桜の名所',
+                access: '🚗 約5分',
+                img: 'https://karusuto.com/wp-content/uploads/2017/12/sakurakoen_main.jpg',
+                description: '厚狭川沿いに約200本のソメイヨシノが咲き誇る市内屈指の桜の名所。春の「みね桜まつり」ではライトアップも実施されます。',
+                studentVoice: '春になると川沿いがピンクのトンネルになります！放課後に友達とお花見散歩をするのが毎年の楽しみです。',
+                lat: 34.169,
+                lng: 131.205
+            },
+            {
+                id: 'spot-11',
+                category: 'sightseeing',
+                categoryLabel: '観光地',
+                categoryColorClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                pinClass: 'pin-sightseeing',
+                name: '鬼の釜',
+                ruby: 'おにのかま',
+                badgeText: '奇岩・歴史伝説',
+                access: '🚗 約20分',
+                img: 'https://mine-geo.com/img/geosite/c01-geo/028.jpg',
+                description: '巨石でできた珍しい石造構造物。鬼が釜を作ったという伝説が残り、ミステリアスな歴史を感じられるディープな見どころです。',
+                studentVoice: '巨石の大きさにびっくり！こんな歴史的な不思議スポットが美祢にあるなんて自慢です。',
+                lat: 34.215,
+                lng: 131.132
+            },
+            {
+                id: 'spot-12',
+                category: 'sightseeing',
+                categoryLabel: '観光地',
+                categoryColorClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                pinClass: 'pin-sightseeing',
+                name: '水神公園',
+                ruby: 'すいじんこうえん',
+                badgeText: '渓流・紅葉',
+                access: '🚗 約18分',
+                img: 'https://karusuto.com/wp-content/uploads/2017/05/suijinkoen_main.jpg',
+                description: '滝や渓流の美しさを楽しめる自然公園。春は新緑、夏は涼しい川遊び、秋はきれいな紅葉と四季を通じて親しまれています。',
+                studentVoice: '夏の水遊びや秋の紅葉狩りに最高！川の水が冷たくてすごく気持ちいい穴場公園です。',
+                lat: 34.228,
+                lng: 131.145
+            },
+            {
+                id: 'spot-13',
+                category: 'sightseeing',
+                categoryLabel: '観光地',
+                categoryColorClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                pinClass: 'pin-sightseeing',
+                name: 'ぽんぽこの里',
+                ruby: 'ぽんぽこのさと',
+                badgeText: '特産品・ドライブ休憩',
+                access: '🚗 約17分',
+                img: 'https://placehold.co/600x400/84cc16/ffffff?text=ぽんぽこの里',
+                description: '地元の特産品や新鮮な野菜が揃う立ち寄りスポット。地元の美味しいグルメやスイーツが手軽に楽しめます。',
+                studentVoice: '地元で採れた美味しい野菜や特産品がたくさん！ドライブ途中の休憩に必ず寄りたい場所です。',
+                lat: 34.210,
+                lng: 131.152
+            },
+            {
+                id: 'spot-14',
+                category: 'sightseeing',
+                categoryLabel: '観光地',
+                categoryColorClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                pinClass: 'pin-sightseeing',
+                name: '於福温泉',
+                ruby: 'おふくおんせん',
+                badgeText: '天然温泉・足湯',
+                access: '🚗 約15分',
+                img: 'https://placehold.co/600x400/1d4ed8/ffffff?text=於福温泉',
+                description: '100%源泉かけ流しの天然温泉施設。露天風呂やサウナも完備されており、立ち寄りの癒やしスポットとしても愛されています。',
+                studentVoice: 'ドライブ帰りや部活帰りにサッと入ってサッパリできる憩いの温泉です！',
+                lat: 34.218,
+                lng: 131.157
+            },
+            {
+                id: 'spot-15',
+                category: 'sightseeing',
+                categoryLabel: '観光地',
+                categoryColorClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                pinClass: 'pin-sightseeing',
+                name: '秋吉台サファリランド',
+                ruby: 'あきよしだいさふぁりらんど',
+                badgeText: 'テーマパーク・動物',
+                access: '🚗 約25分',
+                img: 'https://placehold.co/600x400/eab308/ffffff?text=秋吉台サファリランド',
+                description: '自家用車や専用バスで野生動物を間近に観察。エサやりバスではライオンやトラに大迫力でエサやり体験ができます。',
+                studentVoice: 'エサやりバスは迫力がヤバい！ふれあい広場のカピバラやレッサーパンダも超かわいくて癒やされます。',
+                lat: 34.2823,
+                lng: 131.3328
+            },
+
+            // --- 🍔 飲食店 (gourmet) ---
+            {
+                id: 'spot-16',
+                category: 'gourmet',
+                categoryLabel: '飲食店',
+                categoryColorClass: 'bg-orange-100 text-orange-800 border-orange-300',
+                pinClass: 'pin-gourmet',
+                name: '安富屋',
+                ruby: 'やすとみや',
+                badgeText: '名物グルメ',
+                access: '🚗 約20分',
+                img: 'https://placehold.co/600x400/f97316/ffffff?text=ごぼう麺・かっぱそば',
+                description: '秋芳洞バスセンター前にあるお食事処。美祢名物の「ごぼううどん」や「かっぱそば」など、地元食材を生かしたオリジナル名物料理が味わえます。',
+                studentVoice: '美祢名物のゴボウをたっぷり練り込んだうどんがシャキシャキ香ばしくて絶品！観光のランチにイチオシです。',
+                lat: 34.225,
+                lng: 131.302
+            },
+            {
+                id: 'spot-17',
+                category: 'gourmet',
+                categoryLabel: '飲食店',
+                categoryColorClass: 'bg-orange-100 text-orange-800 border-orange-300',
+                pinClass: 'pin-gourmet',
+                name: '弁天会館（ニジマス料理）',
+                ruby: 'べんてんかいかん',
+                badgeText: '川魚料理',
+                access: '🚗 約15分',
+                img: 'https://placehold.co/600x400/ea580c/ffffff?text=ニジマスの塩焼き定食',
+                description: '別府弁天池の湧水で育った新鮮なニジマス料理が堪能できるお食事処。パリッと香ばしく焼き上げた塩焼きやあらい（刺身）が名物。',
+                studentVoice: '湧水で育ったニジマスは臭みが一切なくてフワフワ！釣り堀で釣った魚をその場で調理してもらうのも楽しいです。',
+                lat: 34.253,
+                lng: 131.217
+            },
+            {
+                id: 'spot-18',
+                category: 'gourmet',
+                categoryLabel: '飲食店',
+                categoryColorClass: 'bg-orange-100 text-orange-800 border-orange-300',
+                pinClass: 'pin-gourmet',
+                name: 'お食事処 やまむら',
+                ruby: 'やまむら',
+                badgeText: '定食・から揚げ',
+                access: '🚗 約20分',
+                img: 'https://placehold.co/600x400/d97706/ffffff?text=ボリューム満点定食',
+                description: '地元で長く愛される人気の食堂。ボリューム満点の唐揚げ定食をはじめ、各種定食やうどん、丼物が揃いドライブ途中の腹ごしらえに最適。',
+                studentVoice: '唐揚げのボリュームがとにかくすごくて大満足！地元の人で賑わうアットホームで美味しいお店です。',
+                lat: 34.205,
+                lng: 131.275
+            },
+            {
+                id: 'spot-19',
+                category: 'gourmet',
+                categoryLabel: '飲食店',
+                categoryColorClass: 'bg-orange-100 text-orange-800 border-orange-300',
+                pinClass: 'pin-gourmet',
+                name: 'Arbòreo（アルボレオ）',
+                ruby: 'あるぼれお',
+                badgeText: 'カフェ・スイーツ',
+                access: '🚗 約18分',
+                img: 'https://placehold.co/600x400/b45309/ffffff?text=隠れ家カフェ＆スイーツ',
+                description: '自然豊かな静かなロケーションにあるおしゃれなカフェ。手作りスイーツや本格的なコーヒー、ランチプレートが人気です。',
+                studentVoice: '落ち着いた雰囲気でケーキもコーヒーも絶品。ドライブ中のカフェタイムや休日のおしゃべりにピッタリ！',
+                lat: 34.212,
+                lng: 131.230
+            },
+
+            // --- 🎨 体験 (experience) ---
+            {
+                id: 'spot-20',
+                category: 'experience',
+                categoryLabel: '体験',
+                categoryColorClass: 'bg-purple-100 text-purple-800 border-purple-300',
+                pinClass: 'pin-experience',
+                name: 'Karst Gate（E-Bike & ケイビング）',
+                ruby: 'かーすとげーと',
+                badgeText: 'アクティビティ',
+                access: '🚗 約20分',
+                img: 'https://placehold.co/600x400/8b5cf6/ffffff?text=E-Bikeサイクリング＆洞窟探検',
+                description: '秋吉台エリアの体験型観光拠点。電動アシスト付き自転車（E-Bike）での絶景サイクリングや、ガイドと行く本格ケイビング（洞窟探検）が楽しめます。',
+                studentVoice: 'E-Bikeなら風を感じながら坂道もスイスイ登れます！秋吉台の草原を駆け抜ける感覚は病みつきになります。',
+                lat: 34.228,
+                lng: 131.300
+            },
+            {
+                id: 'spot-21',
+                category: 'experience',
+                categoryLabel: '体験',
+                categoryColorClass: 'bg-purple-100 text-purple-800 border-purple-300',
+                pinClass: 'pin-experience',
+                name: '美祢市養鱒場 釣り堀',
+                ruby: 'みねしようそんじょう',
+                badgeText: 'ニジマス釣り',
+                access: '🚗 約15分',
+                img: 'https://placehold.co/600x400/7c3aed/ffffff?text=ニジマス釣り堀体験',
+                description: '別府弁天池のすぐ隣にある釣り堀。貸し竿とエサが用意されているので初心者やお子様でも手軽にニジマス釣りを楽しめます。',
+                studentVoice: '初心者でも簡単に釣れるから超盛り上がる！釣ったニジマスはすぐ横で塩焼きにしてもらえるのが嬉しい！',
+                lat: 34.254,
+                lng: 131.219
+            },
+            {
+                id: 'spot-22',
+                category: 'experience',
+                categoryLabel: '体験',
+                categoryColorClass: 'bg-purple-100 text-purple-800 border-purple-300',
+                pinClass: 'pin-experience',
+                name: '景清洞 探検コース',
+                ruby: 'かげきよどう',
+                badgeText: '洞窟探検',
+                access: '🚗 約30分',
+                img: 'https://placehold.co/600x400/6d28d9/ffffff?text=景清洞ヘルメット探検',
+                description: '照明のない真っ暗な洞内を、ヘルメットのキャップランプの明かりだけを頼りに進む大人気体験コース。スリル満点のアドベンチャーです。',
+                studentVoice: 'ガチの探検家気分になれる本格コース！真っ暗闇を進むドキドキ感は友達と行くとさらに盛り上がります。',
+                lat: 34.289,
+                lng: 131.326
+            },
+            {
+                id: 'spot-27',
+                category: 'experience',
+                categoryLabel: '体験',
+                categoryColorClass: 'bg-purple-100 text-purple-800 border-purple-300',
+                pinClass: 'pin-experience',
+                name: '水神公園 そうめん流し',
+                ruby: 'すいじんこうえんのそうめんながし',
+                badgeText: '夏限定・清流グルメ',
+                access: '🚗 約18分',
+                img: 'https://placehold.co/600x400/a855f7/ffffff?text=水神公園のそうめん流し',
+                description: '清流と豊かな緑に囲まれた水神公園で夏季限定オープンするそうめん流し。滝のせせらぎとひんやり冷たい湧水で味わう夏にぴったりの体験です。',
+                studentVoice: '冷たい水に流れてくるそうめんは最高！滝の近くでマイナスイオンを感じながら食べるのが毎年の夏の楽しみです。',
+                lat: 34.229,
+                lng: 131.146
+            },
+            {
+                id: 'spot-28',
+                category: 'experience',
+                categoryLabel: '体験',
+                categoryColorClass: 'bg-purple-100 text-purple-800 border-purple-300',
+                pinClass: 'pin-experience',
+                name: '秋吉台セグウェイツアー',
+                ruby: 'あきよしだいせぐうぇいつあー',
+                badgeText: '絶景散策・近未来',
+                access: '🚗 約20分',
+                img: 'https://yamaguchi-tourism.jp/lsc/api/photo/?src=1700257',
+                description: '立ち乗り電動モビリティ「セグウェイ」に乗って秋吉台の広大なカルスト台地を駆け巡るガイド付きツアー。大自然を全身で感じられます。',
+                studentVoice: '最初は少し緊張したけどすぐにスイスイ乗れるようになります！風を切りながら絶景の中を走る開放感が最高です。',
+                lat: 34.238,
+                lng: 131.301
+            },
+            {
+                id: 'spot-29',
+                category: 'experience',
+                categoryLabel: '体験',
+                categoryColorClass: 'bg-purple-100 text-purple-800 border-purple-300',
+                pinClass: 'pin-experience',
+                name: 'トゥクトゥク観光ドライブ',
+                ruby: 'とぅくとぅくかんこうどらいぶ',
+                badgeText: '爽快モビリティ',
+                access: '🚗 約20分',
+                img: 'https://yamaguchi-tourism.jp/lsc/api/photo/?src=1700252',
+                description: '開放感バツグンのタイの3輪自動車「トゥクトゥク」に乗ってカルストロードを周遊！窓のないオープンな空間から美祢の絶景を満喫できます。',
+                studentVoice: '見た目もカラフルで可愛くて写真映え抜群！爽やかな風を感じながらドライブするとテンションが上がります！',
+                lat: 34.226,
+                lng: 131.299
+            },
+
+            // --- 🏨 宿泊 (accommodation) ---
+            {
+                id: 'spot-23',
+                category: 'accommodation',
+                categoryLabel: '宿泊',
+                categoryColorClass: 'bg-blue-100 text-blue-800 border-blue-300',
+                pinClass: 'pin-accommodation',
+                name: 'レドンド秋吉台',
+                ruby: 'れどんどあきよしだい',
+                badgeText: 'グランピング',
+                access: '🚗 約22分',
+                img: 'https://placehold.co/600x400/3b82f6/ffffff?text=レドンド秋吉台グランピング',
+                description: '秋吉台の大自然に囲まれたドームテント型グランピング施設。昼は美しい木々、夜は満天の星空を眺めながら贅沢なアウトドアステイを満喫。',
+                studentVoice: 'まるでおしゃれなホテルみたいなドームテント！夜は星がすごく綺麗に見えて特別な体験ができます。',
+                lat: 34.240,
+                lng: 131.305
+            },
+            {
+                id: 'spot-24',
+                category: 'accommodation',
+                categoryLabel: '宿泊',
+                categoryColorClass: 'bg-blue-100 text-blue-800 border-blue-300',
+                pinClass: 'pin-accommodation',
+                name: '天宿の杜 桂月',
+                ruby: 'けいげつ',
+                badgeText: '温泉旅館',
+                access: '🚗 約10分',
+                img: 'https://placehold.co/600x400/2563eb/ffffff?text=天宿の杜 桂月',
+                description: '豊かな緑に囲まれた小高丘に立つ温泉和風旅館。絶景の露天風呂と山海の恵みを活かした会席料理で、上質な癒しの時間を提供します。',
+                studentVoice: '高台にあって見晴らしが最高！静かで落ち着いた雰囲気の中で温泉に浸かってリフレッシュできます。',
+                lat: 34.185,
+                lng: 131.182
+            },
+            {
+                id: 'spot-25',
+                category: 'accommodation',
+                categoryLabel: '宿泊',
+                categoryColorClass: 'bg-blue-100 text-blue-800 border-blue-300',
+                pinClass: 'pin-accommodation',
+                name: '秋吉台家族旅行村',
+                ruby: 'あきよしだいかぞくりょこうむら',
+                badgeText: 'キャンプ・ケビン',
+                access: '🚗 約20分',
+                img: 'https://placehold.co/600x400/0284c7/ffffff?text=秋吉台家族旅行村',
+                description: 'カルスト台地のすぐそばに位置する広大なキャンプ場。ログハウス風ケビンやオートキャンプサイトが完備され、アウトドアを満喫できます。',
+                studentVoice: '友達とバーベキューをしたり星空を観察するのに最高のロケーション！自然を全身で体感できます。',
+                lat: 34.232,
+                lng: 131.310
+            },
+            {
+                id: 'spot-26',
+                category: 'accommodation',
+                categoryLabel: '宿泊',
+                categoryColorClass: 'bg-blue-100 text-blue-800 border-blue-300',
+                pinClass: 'pin-accommodation',
+                name: '景清洞キャンプ場',
+                ruby: 'かげきよどうきゃんぷじょう',
+                badgeText: 'キャンプ・トロン温泉',
+                access: '🚗 約30分',
+                img: 'https://placehold.co/600x400/0369a1/ffffff?text=景清洞キャンプ場',
+                description: '景清洞のすぐ目の前にある自然に囲まれたキャンプ場。併設されたトロン温泉で汗を流せるのも魅力的な高規格キャンプ場です。',
+                studentVoice: '洞窟探検の後にそのままキャンプ＆温泉が楽しめるのが最高！家族やグループでの宿泊にオススメです。',
+                lat: 34.288,
+                lng: 131.328
+            }
+        ];
+
+        let map;
+        const markersMap = {};
+
+        // マップの初期化
+        function initMap() {
+            // 美祢市の中心付近（北緯 34.22, 東経 131.24）を中心に設定
+            map = L.map('map').setView([34.22, 131.24], 11);
+
+            // Google Mapsタイルの読み込み
+            L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                maxZoom: 18,
+                attribution: '&copy; <a href="https://www.google.com/maps" target="_blank">Google Maps</a>'
+            }).addTo(map);
+
+            // 起点となる「美祢市観光交流センター」ピン
+            const centerIcon = L.divIcon({
+                className: 'center-map-pin',
+                html: '🚉',
+                iconSize: [36, 36],
+                iconAnchor: [18, 36]
+            });
+            L.marker([34.162, 131.205], { icon: centerIcon })
+                .addTo(map)
+                .bindPopup('<b>美祢市観光交流センター</b><br>（JR美祢駅前・ドライブの起点）');
+
+            // スポットピンの配置
+            spots.forEach((spot, index) => {
+                const customIcon = L.divIcon({
+                    className: `custom-map-pin ${spot.pinClass}`,
+                    html: `${index + 1}`,
+                    iconSize: [38, 38],
+                    iconAnchor: [19, 38]
+                });
+
+                const marker = L.marker([spot.lat, spot.lng], { icon: customIcon })
+                    .addTo(map)
+                    .bindPopup(`
+                        <div class="text-center p-1">
+                            <span class="text-xs px-2 py-0.5 rounded border ${spot.categoryColorClass}">${spot.categoryLabel}</span>
+                            <h4 class="font-bold text-sm mt-1">${spot.name}</h4>
+                            <p class="text-xs text-gray-500 mt-0.5">${spot.badgeText}</p>
+                            <button onclick="scrollToCard('${spot.id}')" class="mt-2 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">詳細を見る</button>
+                        </div>
+                    `);
+
+                markersMap[spot.id] = marker;
+            });
+
+            // スポットカードの描画
+            renderSpotCards(spots);
+        }
+
+        // スポットカードの動的描画
+        function renderSpotCards(spotList) {
+            const container = document.getElementById('spot-cards-container');
+            container.innerHTML = '';
+
+            spotList.forEach((spot, idx) => {
+                const card = document.createElement('div');
+                card.id = spot.id;
+                card.className = 'spot-card bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-xl transition duration-300 flex flex-col md:flex-row';
+                card.onclick = (e) => {
+                    // ボタンクリック時の発火重複を防ぐ
+                    if(e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') {
+                        focusSpot(spot.id);
+                    }
+                };
+
+                card.innerHTML = `
+                    <div class="md:w-1/3 relative h-52 md:h-auto bg-gray-100 overflow-hidden">
+                        <img src="${spot.img}" alt="${spot.name}" class="w-full h-full object-cover transition transform hover:scale-105 duration-500" onerror="this.src='https://placehold.co/600x400/94a3b8/ffffff?text=${encodeURIComponent(spot.name)}'">
+                        <span class="absolute top-3 left-3 bg-gray-900/80 text-white text-xs font-bold px-2.5 py-1 rounded-full backdrop-blur-sm">
+                            № ${spots.findIndex(s => s.id === spot.id) + 1}
+                        </span>
+                    </div>
+                    <div class="p-5 md:p-6 md:w-2/3 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center space-x-2 mb-2 flex-wrap gap-y-1">
+                                <span class="text-xs px-2.5 py-0.5 rounded-full font-semibold border ${spot.categoryColorClass}">${spot.categoryLabel}</span>
+                                <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full border">${spot.badgeText}</span>
+                                <span class="text-xs font-medium text-gray-500 ml-auto">${spot.access}</span>
+                            </div>
+                            <h3 class="text-xl md:text-2xl font-bold text-gray-800 font-pop">
+                                ${spot.name} <span class="text-xs font-normal text-gray-400 block sm:inline">(${spot.ruby})</span>
+                            </h3>
+                            <p class="text-xs md:text-sm text-gray-600 mt-2 leading-relaxed">
+                                ${spot.description}
+                            </p>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-gray-100 bg-slate-50 -mx-5 md:-mx-6 -mb-5 md:-mb-6 p-4">
+                            <p class="text-xs text-blue-900 font-medium flex items-start">
+                                <span class="mr-1.5 text-base">🏫</span>
+                                <span><strong class="text-blue-700">青嶺生ボイス：</strong> ${spot.studentVoice}</span>
+                            </p>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            // バッジ数の更新
+            document.getElementById('spot-count-badge').textContent = `表示中 ${spotList.length} / 全 ${spots.length} スポット`;
+        }
+
+        // カテゴリーフィルター処理
+        function filterCategory(category) {
+            // ボタンのアクティブ化切替
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active', 'bg-gray-800', 'text-white'));
+            
+            const selectedBtn = document.getElementById(`btn-${category}`);
+            if (selectedBtn) {
+                selectedBtn.classList.add('active');
+            }
+
+            let filteredSpots = spots;
+            if (category !== 'all') {
+                filteredSpots = spots.filter(s => s.category === category);
+            }
+
+            // マップ上のマーカー表示制御
+            spots.forEach(spot => {
+                if (category === 'all' || spot.category === category) {
+                    if (!map.hasLayer(markersMap[spot.id])) {
+                        markersMap[spot.id].addTo(map);
+                    }
+                } else {
+                    if (map.hasLayer(markersMap[spot.id])) {
+                        map.removeLayer(markersMap[spot.id]);
+                    }
+                }
+            });
+
+            // カードリストの再描画
+            renderSpotCards(filteredSpots);
+        }
+
+        // スポットへフォーカス（地図移動＋ポップアップ）
+        function focusSpot(spotId) {
+            const spot = spots.find(s => s.id === spotId);
+            if (!spot) return;
+
+            // マップの位置を変更してポップアップを開く
+            map.flyTo([spot.lat, spot.lng], 14, { duration: 1.2 });
+            markersMap[spot.id].openPopup();
+
+            // 地図エリアへスクロール
+            document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // カード位置へスクロール
+        function scrollToCard(spotId) {
+            const card = document.getElementById(spotId);
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                card.classList.add('ring-2', 'ring-blue-500');
+                setTimeout(() => card.classList.remove('ring-2', 'ring-blue-500'), 2000);
+            }
+        }
+
+        // ページロード時初期化
+        window.onload = function() {
+            initMap();
+        };
+    </script>
+</body>
+</html>
